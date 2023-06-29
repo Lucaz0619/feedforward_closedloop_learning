@@ -33,7 +33,7 @@ class RealtimePlotWindow:
 
 
 # Create an instance of an animated scrolling window
-realtimePlotWindow = RealtimePlotWindow("llog.tsv",2)
+realtimePlotWindow = RealtimePlotWindow("flog.tsv",0)
 
 # show the plot and start the animation
 plt.show()

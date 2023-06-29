@@ -114,6 +114,17 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		
 		// now let's calc the output which can then be sent out
 		receiverLayer->calcOutputs();
+		
+		// Normalise output
+		std::vector<double> vec;
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			vec.push_back(receiverLayer->getNeuron(i)->getError());
+		}
+		normalise(vec);
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			receiverLayer->getNeuron(i)->setError(vec[i]);
+		}
+		vec.clear();
 	}
 	// the error is injected into the 1st layer!
 	for(int i=0;i<(layers[0]->getNneurons());i++) {
@@ -126,8 +137,16 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
 			double err = 0;
 			for(int j=0;j<emitterLayer->getNneurons();j++) {
-				err = err + receiverLayer->getNeuron(i)->getWeight(j) *
-					emitterLayer->getNeuron(j)->getError();
+				
+				// At the third layer, creat short cut for error
+				if(k==2){
+					err = err + receiverLayer->getNeuron(i)->getWeight(j) *
+						(emitterLayer->getNeuron(j)->getError() + error[j]);
+				}
+				else{
+					err = err + receiverLayer->getNeuron(i)->getWeight(j) *
+						emitterLayer->getNeuron(j)->getError();
+				}
 #ifdef DEBUG
 				if (isnan(err) || (fabs(err)>10000) || (fabs(emitterLayer->getNeuron(j)->getError())>10000)) {
 					printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, j=%d, i=%d, hidLayerIndex=%d, "
@@ -141,6 +160,17 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 			err = err * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err);
 		}
+		
+		// Normalise output
+		std::vector<double> vec;
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			vec.push_back(receiverLayer->getNeuron(i)->getError());
+		}
+		normalise(vec);
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			receiverLayer->getNeuron(i)->setError(vec[i]);
+		}
+		vec.clear();
 	}
 	doLearning();
 	setStep();

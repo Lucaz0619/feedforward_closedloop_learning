@@ -11,6 +11,9 @@
 #include <math.h>
 #include <assert.h>
 #include <vector>
+#include <numeric>
+#include <cmath>
+#include <algorithm>
 
 /** Main class of Feedforward Closed Loop Learning.
  * Create an instance of this class to do the
@@ -140,6 +143,31 @@ public:
          * \param name: filename
          **/
 	bool loadModel(const char* name);
+	
+	/** Get mean on a vector
+	**/
+	double getMean(const std::vector<double>& input) {
+    		return std::accumulate(input.begin(), input.end(), 0.0) / static_cast<double>(input.size());
+	}
+	
+	/** Get standard deviation on a vector
+	**/
+	double getStdDev(const std::vector<double>& input, double mean) {
+		double sum = 0.0;
+		std::for_each(input.begin(), input.end(), [&] (double val) {
+			sum += pow(val - mean, 2);
+		});
+		return sqrt(sum / static_cast<double>(input.size()));
+	}
+	
+	/** Normalisation
+	**/
+	void normalise(std::vector<double>& input) {
+	    double mean = getMean(input);
+	    double stddev = getStdDev(input, mean);
+	    std::transform(input.begin(), input.end(), input.begin(), 
+		           [&](double val) { return (val - mean) / stddev; });
+	}
 
 	
 
