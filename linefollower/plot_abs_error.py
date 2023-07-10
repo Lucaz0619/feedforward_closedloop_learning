@@ -12,7 +12,7 @@ class RealtimePlotWindow:
         self.tsvfile = tsvfile
         # create a plot window
         self.fig, self.ax = plt.subplots()
-        self.ax.set_ylim(-0.02, 0.02)
+        self.ax.set_ylim(-0.06, 0.06)
         # that's our plotbuffer
         self.plotbuffer = np.zeros(2000)
         # create an empty line

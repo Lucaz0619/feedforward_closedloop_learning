@@ -124,8 +124,7 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		FCLLayer* emitterLayer = layers[k-1];
 		FCLLayer* receiverLayer = layers[k];
 		std::vector<double> err(receiverLayer->getNneurons(), 0.0);
-		double errMax = 0.0000001;
-		double errMin = 0.0000001;
+		double errSum = 0;
 		//double w = 0;
 		// Calculate the errors for the hidden layer
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
@@ -147,22 +146,27 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 			//err[i] = err[i] * learningRateDiscountFactor;
 			//err[i] = err[i] * emitterLayer->getNneurons();
 			//err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
-			if(errMax < err[i]) {errMax = err[i];}
-			if(errMin > err[i]) {errMin = err[i];}
+			errSum = errSum + err[i];
 			//receiverLayer->getNeuron(i)->setError(err);
 		}
 
+		double sum = 0;
+		double errMean = errSum / receiverLayer->getNneurons();
 		for(int i=0;i<receiverLayer->getNneurons();i++){
-			err[i] = 2 * ((err[i] - errMin) / (errMax - errMin)) - 1;
+			sum += pow(err[i] - errMean, 2);
+		}
+		double errVar = sum / receiverLayer->getNneurons();
+		for(int i=0;i<receiverLayer->getNneurons();i++){
+			err[i] = (err[i] - errMean) / pow(errVar + 0.00001, 0.5);
 			err[i] = err[i] * learningRateDiscountFactor;
 			err[i] = err[i] / emitterLayer->getNneurons();
-			//err[i] = err[i] * k / w;
+			//ans = ans / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err[i]);
 #ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
-						"err=%e errMax=%e err<im=%e\n", __func__,step,i,k,err[i],errMax,errMin);
+						"err=%e errMean=%e errStd=%e\n", __func__,step,i,k,err[i],errMean,errVar);
 			}
 			
 #endif

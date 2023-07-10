@@ -10,7 +10,7 @@ import numpy as np
 
 plt.ion()
 plt.show()
-ln = [False,False,False,False]
+ln = [False,False,False,False,False,False]
 
 
 def plotOneMatrix(i):
@@ -23,14 +23,20 @@ def plotOneMatrix(i):
 
 
 while True:
-    plt.subplot(221)
+    plt.subplot(231)
     plotOneMatrix(0)   
-    plt.subplot(222)
+    plt.subplot(232)
     plotOneMatrix(1)   
-    plt.subplot(223)
+    plt.subplot(233)
     plotOneMatrix(2)   
-#    plt.subplot(224)
-#    plotOneMatrix(3)   
+    plt.subplot(234)
+    plotOneMatrix(3)
+    plt.subplot(235)
+    plotOneMatrix(4)
+    # plt.subplot(236)
+    # plotOneMatrix(5)
+    # plt.subplot(227)
+    # plotOneMatrix(6) 
     plt.draw()   
     plt.pause(10)     
 
