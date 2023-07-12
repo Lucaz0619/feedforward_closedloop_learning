@@ -120,6 +120,7 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 	for(int i=0;i<(layers[0]->getNneurons());i++) {
 		layers[0]->getNeuron(i)->setError(error[i]);
 	}
+	std::vector<double> xSkip(layers[0]->getNneurons(), 0.0);
 	for (unsigned k=1; k<n_neurons_per_layer.size(); k++) {
 		FCLLayer* emitterLayer = layers[k-1];
 		FCLLayer* receiverLayer = layers[k];
@@ -154,19 +155,26 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 
 		for(int i=0;i<receiverLayer->getNneurons();i++){
 			err[i] = 2 * ((err[i] - errMin) / (errMax - errMin)) - 1;
+			if(k%2==1 && k != 1){
+				err[i] = err[i] + xSkip[i];
+			}
 			err[i] = err[i] * learningRateDiscountFactor;
 			err[i] = err[i] / emitterLayer->getNneurons();
 			//err[i] = err[i] * k / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err[i]);
-#ifdef DEBUG
+//#ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
-						"err=%e errMax=%e err<im=%e\n", __func__,step,i,k,err[i],errMax,errMin);
+						"err=%e errMax=%e errMim=%e xSkip=%e\n", __func__,step,i,k,err[i],errMax,errMin, xSkip[i]);
 			}
 			
-#endif
-		}	
+//#endif
+		}
+		if(k%2==1){
+			xSkip.resize(err.size());
+			xSkip = err;
+		}
 	}
 	doLearning();
 	setStep();

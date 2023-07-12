@@ -7,10 +7,10 @@ const double fbgain = 300;
 const int nInputs = 30;
 
 // Number of layers of neurons in total
-static constexpr int nLayers = 6;
+static constexpr int nLayers = 12;
 
 // The number of neurons in every layer
-const std::vector<int> nNeuronsInLayers = {9,9,9,6,6,6};
+const std::vector<int> nNeuronsInLayers = {9,9,9,9,9,9,6,6,6,6,6,6};
 
 // We set nFilters in the input
 const int nFiltersInput = 10;
