@@ -20,22 +20,22 @@ FeedforwardClosedloopLearning::FeedforwardClosedloopLearning(const int num_input
 	ni = (unsigned)num_input;
 
 	// creating input layer
-//#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"Creating input layer: ");
-//#endif
+#endif
 	layers[0] = new FCLLayer(n_neurons_per_layer[0], ni);
-//#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"n[0]=%d\n",n_neurons_per_layer[0]);
-//#endif
+#endif
 	
 	for(unsigned i=1; i<n_neurons_per_layer.size(); i++) {
-//#ifdef DEBUG
+#ifdef DEBUG
 		fprintf(stderr,"Creating layer %d: ",i);
-//#endif
+#endif
 		layers[i] = new FCLLayer(n_neurons_per_layer[i], layers[i-1]->getNneurons());
-//#ifdef DEBUG
+#ifdef DEBUG
 		fprintf(stderr,"created with %d neurons.\n",layers[i]->getNneurons());
-//#endif
+#endif
 	}
 	setLearningRate(0);
 }
@@ -120,6 +120,7 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 	for(int i=0;i<(layers[0]->getNneurons());i++) {
 		layers[0]->getNeuron(i)->setError(error[i]);
 	}
+	std::vector<double> xSkip(layers[0]->getNneurons(), 0.0);
 	for (unsigned k=1; k<n_neurons_per_layer.size(); k++) {
 		FCLLayer* emitterLayer = layers[k-1];
 		FCLLayer* receiverLayer = layers[k];
@@ -127,13 +128,13 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		double errSum = 0;
 		// Calculate the errors for the hidden layer
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
-			for(int j=0;j<emitterLayer->getNneurons();j++) {	
+			for(int j=0;j<emitterLayer->getNneurons();j++) {
 				err[i] = err[i] + receiverLayer->getNeuron(i)->getWeight(j) *
 						emitterLayer->getNeuron(j)->getError();
 			}
 			errSum = errSum + err[i];
 		}
-		//zscore normalisation
+		// z-score normalisation
 		double sum = 0;
 		double errMean = errSum / receiverLayer->getNneurons();
 		for(int i=0;i<receiverLayer->getNneurons();i++){
@@ -141,23 +142,37 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		}
 		double errVar = sum / receiverLayer->getNneurons();
 		for(int i=0;i<receiverLayer->getNneurons();i++){
-
 			err[i] = (err[i] - errMean) / pow(errVar + 0.00001, 0.5);
-
+			// residual network
+			if(k%2==1 && k != 1 && k != n_neurons_per_layer.size()-1){
+				if(err.size()==xSkip.size()){
+					err[i] = err[i] + xSkip[i];
+				}
+				// rescale the output from 9 nodes to 6 at layer 7 
+				else{
+					if(i<3){err[i] = err[i] + (xSkip[i]+xSkip[i+1]+xSkip[i+2])/3;}
+					else{err[i] = err[i] + (xSkip[i+1]+xSkip[i+2]+xSkip[i+3])/3;}
+				}
+				
+			}
 			err[i] = err[i] * learningRateDiscountFactor;
 			err[i] = err[i] / emitterLayer->getNneurons();
+			//err[i] = err[i] * k / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
-
 			receiverLayer->getNeuron(i)->setError(err[i]);
-
 //#ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
-						"err=%e errMean=%e 1errStd=%e\n", __func__,step,i,k,err[i],errMean,errVar);
+						"err=%e errMean=%e errStd=%e 1xSkip=%e\n", __func__,step,i,k,err[i],errMean,errVar,xSkip);
 			}
 			
 //#endif
-		}	
+		}
+		// resize and store the shortcut
+		if(k%2==1){
+			xSkip.resize(err.size());
+			xSkip = err;
+		}
 	}
 	doLearning();
 	setStep();
