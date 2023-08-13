@@ -20,22 +20,22 @@ FeedforwardClosedloopLearning::FeedforwardClosedloopLearning(const int num_input
 	ni = (unsigned)num_input;
 
 	// creating input layer
-//#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"Creating input layer: ");
-//#endif
+#endif
 	layers[0] = new FCLLayer(n_neurons_per_layer[0], ni);
-//#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"n[0]=%d\n",n_neurons_per_layer[0]);
-//#endif
+#endif
 	
 	for(unsigned i=1; i<n_neurons_per_layer.size(); i++) {
-//#ifdef DEBUG
+#ifdef DEBUG
 		fprintf(stderr,"Creating layer %d: ",i);
-//#endif
+#endif
 		layers[i] = new FCLLayer(n_neurons_per_layer[i], layers[i-1]->getNneurons());
-//#ifdef DEBUG
+#ifdef DEBUG
 		fprintf(stderr,"created with %d neurons.\n",layers[i]->getNneurons());
-//#endif
+#endif
 	}
 	setLearningRate(0);
 }
@@ -115,6 +115,18 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		// now let's calc the output which can then be sent out
 		receiverLayer->calcOutputs();
 		
+		// Normalise output
+		/*
+		std::vector<double> vec;
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			vec.push_back(receiverLayer->getNeuron(i)->getError());
+		}
+		normalise(vec);
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			receiverLayer->getNeuron(i)->setError(vec[i]);
+		}
+		vec.clear();
+		*/
 	}
 	// the error is injected into the 1st layer!
 	for(int i=0;i<(layers[0]->getNneurons());i++) {
@@ -123,41 +135,46 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 	for (unsigned k=1; k<n_neurons_per_layer.size(); k++) {
 		FCLLayer* emitterLayer = layers[k-1];
 		FCLLayer* receiverLayer = layers[k];
-		std::vector<double> err(receiverLayer->getNneurons(), 0.0);
-		double errSum = 0;
 		// Calculate the errors for the hidden layer
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
-			for(int j=0;j<emitterLayer->getNneurons();j++) {	
-				err[i] = err[i] + receiverLayer->getNeuron(i)->getWeight(j) *
+			double err = 0;
+			for(int j=0;j<emitterLayer->getNneurons();j++) {
+				
+				// At the third layer, creat short cut for error
+				//if(k==2){
+				//	err = err + receiverLayer->getNeuron(i)->getWeight(j) *
+				//		(emitterLayer->getNeuron(j)->getError() + error[j]);
+				//}
+				//else{
+				err = err + receiverLayer->getNeuron(i)->getWeight(j) *
 						emitterLayer->getNeuron(j)->getError();
-			}
-			errSum = errSum + err[i];
-		}
-		//zscore normalisation
-		double sum = 0;
-		double errMean = errSum / receiverLayer->getNneurons();
-		for(int i=0;i<receiverLayer->getNneurons();i++){
-			sum += pow(err[i] - errMean, 2);
-		}
-		double errVar = sum / receiverLayer->getNneurons();
-		for(int i=0;i<receiverLayer->getNneurons();i++){
-
-			err[i] = (err[i] - errMean) / pow(errVar + 0.00001, 0.5);
-
-			err[i] = err[i] * learningRateDiscountFactor;
-			err[i] = err[i] / emitterLayer->getNneurons();
-			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
-
-			receiverLayer->getNeuron(i)->setError(err[i]);
-
+				//}
 //#ifdef DEBUG
-			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
-				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
-						"err=%e errMean=%e 1errStd=%e\n", __func__,step,i,k,err[i],errMean,errVar);
-			}
-			
+				if (step % 100 == 0 || isnan(err) || (fabs(err)>10000) || (fabs(emitterLayer->getNeuron(j)->getError())>10000)) {
+					printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, j=%d, i=%d, hidLayerIndex=%d, "
+					       "err=%e, emitterLayer->getNeuron(j)->getError()=%e\n",
+					       __func__,step,j,i,k,err,emitterLayer->getNeuron(j)->getError());
+				}
 //#endif
-		}	
+			}
+			err = err * learningRateDiscountFactor;
+			err = err * emitterLayer->getNneurons();
+			err = err * receiverLayer->getNeuron(i)->dActivation();
+			receiverLayer->getNeuron(i)->setError(err);
+		}
+		
+		// Normalise output
+		/*
+		std::vector<double> vec;
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			vec.push_back(receiverLayer->getNeuron(i)->getError());
+		}
+		normalise(vec);
+		for(int i=0;i<receiverLayer->getNneurons();i++) {
+			receiverLayer->getNeuron(i)->setError(vec[i]);
+		}
+		vec.clear();
+		*/
 	}
 	doLearning();
 	setStep();

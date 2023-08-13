@@ -126,40 +126,27 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		std::vector<double> err(receiverLayer->getNneurons(), 0.0);
 		double errMax = 0.0000001;
 		double errMin = 0.0000001;
-		//double w = 0;
 		// Calculate the errors for the hidden layer
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
 			//double e = 0;
 			for(int j=0;j<emitterLayer->getNneurons();j++) {
 				
-				//if(k==2){
-				//	err[i] = err[i] + receiverLayer->getNeuron(i)->getWeight(j) *
-				//		(emitterLayer->getNeuron(j)->getError() + error[j]);
-				//}
-
-				//else{
 				err[i] = err[i] + receiverLayer->getNeuron(i)->getWeight(j) *
 						emitterLayer->getNeuron(j)->getError();
-				//}
-				//w = w + receiverLayer->getNeuron(i)->getWeight(j);
-				//e = emitterLayer->getNeuron(j)->getError();
-/*#ifdef DEBUG
+
+#ifdef DEBUG
 				if (isnan(err[i]) || (fabs(err[i])>10000) || (fabs(emitterLayer->getNeuron(j)->getError())>10000)) {
 					printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, j=%d, i=%d, hidLayerIndex=%d, "
 					       "err=%e, emitterLayer->getNeuron(j)->getError()=%e\n",
 					       __func__,step,j,i,k,err[i],emitterLayer->getNeuron(j)->getError());
 				}
-#endif*/
+#endif
 			}
-			//err[i] = err[i] * learningRateDiscountFactor;
-			//err[i] = err[i] * emitterLayer->getNneurons();
-			//err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			if(errMax < err[i]) {errMax = err[i];}
 			if(errMin > err[i]) {errMin = err[i];}
-			//receiverLayer->getNeuron(i)->setError(err);
 		}
 
-		//minmax normalisation
+		//min-max normalisation
 		for(int i=0;i<receiverLayer->getNneurons();i++){
 			err[i] = 2 * ((err[i] - errMin) / (errMax - errMin)) - 1;
 			err[i] = err[i] * learningRateDiscountFactor;
@@ -167,13 +154,13 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 			//err[i] = err[i] * k / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err[i]);
-//#ifdef DEBUG
+#ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
 						"err=%e errMax=%e 2errMin=%e\n", __func__,step,i,k,err[i],errMax,errMin);
 			}
 			
-//#endif
+#endif
 		}	
 	}
 	doLearning();

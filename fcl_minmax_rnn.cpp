@@ -127,7 +127,6 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 		std::vector<double> err(receiverLayer->getNneurons(), 0.0);
 		double errMax = 0.0000001;
 		double errMin = 0.0000001;
-		//double w = 0;
 		// Calculate the errors for the hidden layer
 		for(int i=0;i<receiverLayer->getNneurons();i++) {
 			//double e = 0;
@@ -137,24 +136,16 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 						emitterLayer->getNeuron(j)->getError();
 				//w = w + receiverLayer->getNeuron(i)->getWeight(j);
 				//e = emitterLayer->getNeuron(j)->getError();
-/*#ifdef DEBUG
-				if (isnan(err[i]) || (fabs(err[i])>10000) || (fabs(emitterLayer->getNeuron(j)->getError())>10000)) {
-					printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, j=%d, i=%d, hidLayerIndex=%d, "
-					       "err=%e, emitterLayer->getNeuron(j)->getError()=%e\n",
-					       __func__,step,j,i,k,err[i],emitterLayer->getNeuron(j)->getError());
-				}
-#endif*/
 			}
-			//err[i] = err[i] * learningRateDiscountFactor;
-			//err[i] = err[i] * emitterLayer->getNneurons();
-			//err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			if(errMax < err[i]) {errMax = err[i];}
 			if(errMin > err[i]) {errMin = err[i];}
-			//receiverLayer->getNeuron(i)->setError(err);
 		}
 
+		// min-max normalisation
 		for(int i=0;i<receiverLayer->getNneurons();i++){
 			err[i] = 2 * ((err[i] - errMin) / (errMax - errMin)) - 1;
+
+			// residual network
 			if(k%2==1 && k != 1 && k != n_neurons_per_layer.size()-1){
 				if(err.size()==xSkip.size()){
 					err[i] = err[i] + xSkip[i];
@@ -165,19 +156,23 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 				}
 				
 			}
+			
+			// rescale the output from 9 nodes to 6 
 			err[i] = err[i] * learningRateDiscountFactor;
 			err[i] = err[i] / emitterLayer->getNneurons();
 			//err[i] = err[i] * k / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err[i]);
-//#ifdef DEBUG
+#ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
 						"err=%e errMax=%e errMin%e 1xSkip=%e\n", __func__,step,i,k,err[i],errMax,errMin, xSkip[i]);
 			}
 			
-//#endif
+#endif
 		}
+
+		// resize and store the shortcut
 		if(k%2==1){
 			xSkip.resize(err.size());
 			xSkip = err;

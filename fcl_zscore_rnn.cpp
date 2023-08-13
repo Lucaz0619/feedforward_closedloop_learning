@@ -148,10 +148,10 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 				if(err.size()==xSkip.size()){
 					err[i] = err[i] + xSkip[i];
 				}
-				// rescale the output from 9 nodes to 6 at layer 7 
+				// rescale the output from 9 nodes to 6 
 				else{
-					if(i<3){err[i] = err[i] + (xSkip[i]+xSkip[i+1]+xSkip[i+2])/3;}
-					else{err[i] = err[i] + (xSkip[i+1]+xSkip[i+2]+xSkip[i+3])/3;}
+					if(i<3){err[i] = err[i] + (0.3*xSkip[i]+0.4*xSkip[i+1]+0.3*xSkip[i+2]);}
+					else{err[i] = err[i] + (0.3*xSkip[i+1]+0.4*xSkip[i+2]+0.3*xSkip[i+3]);}
 				}
 				
 			}
@@ -160,13 +160,13 @@ void FeedforwardClosedloopLearning::doStep(const std::vector<double> &input, con
 			//err[i] = err[i] * k / w;
 			err[i] = err[i] * receiverLayer->getNeuron(i)->dActivation();
 			receiverLayer->getNeuron(i)->setError(err[i]);
-//#ifdef DEBUG
+#ifdef DEBUG
 			if (step % 100 == 0 || isnan(err[i]) || (fabs(err[i])>10000)) {
 				printf("RANGE! FeedforwardClosedloopLearning::%s, step=%ld, i=%d, hidLayerIndex=%d, "
 						"err=%e errMean=%e errStd=%e 1xSkip=%e\n", __func__,step,i,k,err[i],errMean,errVar,xSkip);
 			}
 			
-//#endif
+#endif
 		}
 		// resize and store the shortcut
 		if(k%2==1){
